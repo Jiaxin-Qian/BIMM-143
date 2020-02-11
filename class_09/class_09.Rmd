@@ -1,0 +1,119 @@
+---
+title: "class_09"
+author: "Jiaxin Qian"
+date: "2/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#Analysis of Human Breast Cancer Cells 
+1. Input and organize the data 
+```{r}
+url <- "https://bioboot.github.io/bimm143_W18/class-material/WisconsinCancer.csv"
+wisc.df <- read.csv(url) #ignore the funkey thingd in the data set, including ID, ddiagnosis, and the last X
+wisc.data <- as.matrix(wisc.df[,3:32])
+# Set the row names of wisc.data
+row.names(wisc.data) <- wisc.df$id
+#head(wisc.data)
+diagnosis <- wisc.df[["diagnosis"]]
+
+```
+
+> Q1. How many observations are in this dataset?
+
+```{r}
+nrow(wisc.df)
+```
+
+> Q2. How many of the observations have a malignant diagnosis?
+
+```{r}
+table(wisc.df$diagnosis)
+```
+
+> Q3. How many variables/features in the data are suffixed with _mean?
+
+```{r}
+#grep("_mean", colnames(wisc.df), value = TRUE)
+length(grep("_mean", colnames(wisc.df)))
+```
+
+## PCA
+Before we do PCA, we need to think or consider whether we should SCALE our input
+It is important to check if the data need to be scaled before performing PCA. Recall two common reasons for scaling data include:
+**The input variables use different units of measurement.**
+**The input variables have significantly different variances.**
+
+```{r}
+round(apply(wisc.data, 2, sd), 2) 
+# check for large values
+```
+
+```{r}
+# Perform PCA on wisc.data by completing the following code
+wisc.pr <- prcomp(wisc.data, scale. = TRUE)
+summary(wisc.pr)
+```
+
+##Interpreting PCA
+```{r}
+bipolt(wisc.pr)
+#too messy to be understandable
+```
+
+```{r}
+attributes(wisc.pr)
+```
+
+```{r}
+plot(wisc.pr$x[,1], wisc.pr$x[,2], col=wisc.df$diagnosis,  xlab = "PC1", ylab = "PC2")
+abline(h=0, col="grey", lty=2)
+abline(v=0, col="grey", lty=2)
+#red for M
+```
+
+###Cluster in PC space
+cluster the original data
+```{r}
+hc <- hclust(dist(wisc.data))
+plot(hc)
+```
+
+cluster the PCA
+```{r}
+wisc.pr.hc <- hclust(dist(wisc.pr$x[, 1:3]), method="ward.D2")
+plot(wisc.pr.hc)
+```
+
+We can use `cutree()` to seperate the data 
+```{r}
+table(cutree(wisc.pr.hc, k=4))
+gp3 <- cutree(wisc.pr.hc, k=4)
+plot(wisc.pr$x[,1], wisc.pr$x[,2], col=gp3)
+```
+
+We can use `table()` to compare the $diagnosis vector with out cluster result
+```{r}
+table(gp3, wisc.df$diagnosis)
+```
+
+##Prediction
+```{r}
+url <- "https://tinyurl.com/new-samples-CSV"
+new <- read.csv(url)
+#use the predict() function with our previous PCA model and new data
+npc <- predict(wisc.pr, newdata=new)
+npc
+```
+
+now draw the PCA plot again and add our new data
+```{r}
+plot(wisc.pr$x[,1], wisc.pr$x[,2], col=wisc.df$diagnosis)
+points(npc[,1], npc[,2], col="blue", pch=16, cex=3)
+text(npc[,1], npc[,2], c(1,2), col="white")
+```
+
