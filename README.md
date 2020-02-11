@@ -7,3 +7,8 @@ Git instructions:
 4. pull to RStudio
 >How to merge git repo 
 
+> add class folders: 
+1. copy into the folder
+2. add to stage
+3. commited
+4. pushed
