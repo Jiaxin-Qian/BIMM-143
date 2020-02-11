@@ -8,7 +8,7 @@ Git instructions:
 >How to merge git repo 
 
 > add class folders: 
-1. copy into the folder
+1. copy into the folder, change output to "github_document"
 2. add to stage
 3. commited
 4. pushed
