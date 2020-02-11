@@ -5,3 +5,4 @@ Git instructions:
 2. commit
 3. push to the Github
 4. pull to RStudio
+How to merge git repo 
