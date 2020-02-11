@@ -61,7 +61,7 @@ summary(wisc.pr)
 
 ##Interpreting PCA
 ```{r}
-bipolt(wisc.pr)
+biplot(wisc.pr)
 #too messy to be understandable
 ```
 
