@@ -5,4 +5,8 @@ Git instructions:
 2. commit
 3. push to the Github
 4. pull to RStudio
+<<<<<<< HEAD
 >how to merge git repo
+=======
+>How to merge git repo 
+>>>>>>> 09558e730e870118f329b9c9d56d54fd712931b6
