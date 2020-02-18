@@ -1,0 +1,32 @@
+---
+title: "Class 13: Structure-based Drug Discover"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Download and clean HIV-Pr receptor structure 
+
+Here we will download the 1HSG PDB structure from the online database, remove the bound drug from Merk and write 
+out a *protein* only and *ligand* only new set of PDB files
+
+We will use **bio3d packages** functions `get.pdb()`, `read.pdb()`, `atom.select()`, and `write.pdb()`
+```{r}
+library(bio3d)
+#download PDB file
+file.name <- get.pdb("1hsg")
+pdb <- read.pdb(file.name)
+```
+
+Select and write protein and ligand PDB files respectively
+```{r}
+lig <- atom.select(pdb, "ligand", value = TRUE)
+write.pdb(lig, file="ihsg_ligand.pdb")
+prot <- atom.select(pdb, "protein", value = TRUE)
+write.pdb(prot, file="ihsg_protein.pdb")
+```
+
+
+
