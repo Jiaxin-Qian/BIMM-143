@@ -1,0 +1,149 @@
+---
+title: "Class 15"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Import data 
+
+The data for this hands-on session comes from a published RNA-seq experiment where airway smooth muscle cells were treated with dexamethasone, a synthetic glucocorticoid steroid with anti-inflammatory effects (Himes et al. 2014).
+
+Glucocorticoids are used, for example, by people with asthma to reduce inflammation of the airways. The anti-inflammatory effects on airway smooth muscle (ASM) cells has been known for some time but the underlying molecular mechanisms are unclear.
+
+```{r}
+counts <- read.csv("data/airway_scaledcounts.csv", stringsAsFactors = FALSE)
+metadata <-  read.csv("data/airway_metadata.csv", stringsAsFactors = FALSE)
+```
+
+How many genes are we dealing with?
+
+```{r}
+nrow(counts)
+```
+
+We want to calculate the average counts per gene for control samples and for the drug treatment samples. We will then compare these values to see if there is a difference overall between control and treated samples for a given gene. 
+```{r}
+#Access only row in the metadata
+#metadata$id[metadata$dex=="control"]
+control <- metadata[metadata$dex == "control",]
+#Use the $id of the `control` data to access the control columns in `counts` and calculate the average 
+control.mean <- rowSums( counts[ ,control$id] )/nrow(control) 
+names(control.mean) <- counts$ensgene
+```
+
+Now do the same for the treated samples
+```{r}
+treated <- metadata[metadata$dex == "treated",]
+treated.mean <- rowSums(counts[, treated$id])/nrow(treated)
+names(treated.mean) <- counts$ensgene
+```
+
+Merge control.mean and treated.mean into a dataframe
+```{r}
+meancounts <- data.frame(control.mean, treated.mean)
+```
+
+Plot the meancounts to visualize the data
+```{r}
+#plot(meancounts) directly shows the data are all clustered togather in the corner
+plot(meancounts, log="xy")
+```
+
+Use the log2foldchange to modify `meancounts` data
+```{r}
+meancounts$log2fc <- log2(meancounts[,"treated.mean"]/meancounts[,"control.mean"])
+head(meancounts)
+```
+
+remove any gene that has zero average count
+```{r}
+zero.vals <- which(meancounts[,1:2]==0, arr.ind=TRUE)
+
+to.rm <- unique(zero.vals[,1])
+mycounts <- meancounts[-to.rm,]
+head(mycounts)
+nrow(mycounts)
+```
+
+A common threshold used for calling something differentially expressed is a log2(FoldChange) of greater than 2 or less than -2. Let’s filter the dataset both ways to see how many genes are up or down-regulated.
+```{r}
+up.ind <- mycounts$log2fc > 2
+down.ind <- mycounts$log2fc < (-2)
+sum(up.ind)
+sum(down.ind)
+```
+
+##Do this properly with DESeq2 package
+```{r}
+library(DESeq2)
+```
+
+Setup input for DESeq2 by specifying countdata, metadata, and the experiment design(ie. which comparison we are intereted in )
+```{r}
+dds <- DESeqDataSetFromMatrix(countData=counts, 
+                              colData=metadata, 
+                              design=~dex, 
+                              tidy=TRUE)
+dds
+```
+
+```{r}
+dds <- DESeq(dds)
+```
+
+```{r}
+res <- results(dds)
+```
+
+Volcano plots
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+```
+
+First, let’s add a column called sig to our full res results that evaluates to TRUE only if padj<0.05 and the absolute log2FoldChange>2, FALSE if not, and NA if padj is also NA.
+
+```{r}
+res$sig <- res$padj<0.05 & abs(res$log2FoldChange)>2
+```
+
+A volcano plot shows the log fold change on the X-axis, and the −log10 of the p-value on the Y-axis (the more significant the p-value, the larger the −log10 of that value will be).
+
+Here we first make a volcano plot with base graphics and color by our res$sig+1 (we add 1 so we dont have 0 as a color and end up with white points):
+
+```{r}
+# Set the color palette for our plot
+palette( c("gray","blue") )
+
+plot( res$log2FoldChange,  -log(res$padj), 
+ col=res$sig+1, ylab="-Log(P-value)", xlab="Log2(FoldChange)")
+
+# Add some cut-off lines
+abline(v=c(-2,2), col="darkgray", lty=2)
+abline(h=-log(0.1), col="darkgray", lty=2)
+```
+
+```{r}
+# Reset the color palette
+palette("default") 
+```
+
+We could also setup a custom color vector indicating transcripts with large fold change and significant differences between conditions
+```{r}
+# Setup our custom point color vector 
+mycols <- rep("gray", nrow(res))
+mycols[ abs(res$log2FoldChange) > 2 ]  <- "red" 
+
+inds <- (res$padj < 0.01) & (abs(res$log2FoldChange) > 2 )
+mycols[ inds ] <- "blue"
+
+#Volcano plot with custom colors 
+plot( res$log2FoldChange,  -log(res$padj), 
+ col=mycols, ylab="-Log(P-value)", xlab="Log2(FoldChange)" )
+
+abline(v=c(-2,2), col="gray", lty=2)
+abline(h=-log(0.1), col="gray", lty=2)
+```
+
